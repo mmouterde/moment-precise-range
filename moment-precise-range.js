@@ -1,88 +1,18 @@
-if (typeof moment === "undefined" && typeof require === 'function') {
-    var moment = require('moment');
-}
-
 (function(moment) {
-    var STRINGS = {
-        nodiff: '',
-        year: 'year',
-        years: 'years',
-        month: 'month',
-        months: 'months',
-        day: 'day',
-        days: 'days',
-        hour: 'hour',
-        hours: 'hours',
-        minute: 'minute',
-        minutes: 'minutes',
-        second: 'second',
-        seconds: 'seconds',
-        delimiter: ' '
+
+    moment.fn.preciseDiff = function(d2) {
+        return moment.preciseDiff(this, d2);
     };
+    moment.preciseDiff = function(d1, d2) {
 
-    function pluralize(num, word) {
-        return num + ' ' + STRINGS[word + (num === 1 ? '' : 's')];
-    }
-
-    function buildStringFromValues(yDiff, mDiff, dDiff, hourDiff, minDiff, secDiff){
-        var result = [];
-
-        if (yDiff) {
-            result.push(pluralize(yDiff, 'year'));
-        }
-        if (mDiff) {
-            result.push(pluralize(mDiff, 'month'));
-        }
-        if (dDiff) {
-            result.push(pluralize(dDiff, 'day'));
-        }
-        if (hourDiff) {
-            result.push(pluralize(hourDiff, 'hour'));
-        }
-        if (minDiff) {
-            result.push(pluralize(minDiff, 'minute'));
-        }
-        if (secDiff) {
-            result.push(pluralize(secDiff, 'second'));
-        }
-
-        return result.join(STRINGS.delimiter);
-    }
-
-    function buildValueObject(yDiff, mDiff, dDiff, hourDiff, minDiff, secDiff, firstDateWasLater) {
-        return {
-            "years"   : yDiff,
-            "months"  : mDiff,
-            "days"    : dDiff,
-            "hours"   : hourDiff,
-            "minutes" : minDiff,
-            "seconds" : secDiff,
-            "firstDateWasLater" : firstDateWasLater
-        }
-    }
-    moment.fn.preciseDiff = function(d2, returnValueObject) {
-        return moment.preciseDiff(this, d2, returnValueObject);
-    };
-
-    moment.preciseDiff = function(d1, d2, returnValueObject) {
-        var m1 = moment(d1), m2 = moment(d2), firstDateWasLater;
-        
-        m1.add(m2.utcOffset() - m1.utcOffset(), 'minutes'); // shift timezone of m1 to m2
-        
+        var m1 = moment(d1), m2 = moment(d2);
         if (m1.isSame(m2)) {
-            if (returnValueObject) {
-                return buildValueObject(0, 0, 0, 0, 0, 0, false);
-            } else {
-                return STRINGS.nodiff;
-            }
+            return '';
         }
         if (m1.isAfter(m2)) {
             var tmp = m1;
             m1 = m2;
             m2 = tmp;
-            firstDateWasLater = true;
-        } else {
-            firstDateWasLater = false;
         }
 
         var yDiff = m2.year() - m1.year();
@@ -105,7 +35,7 @@ if (typeof moment === "undefined" && typeof require === 'function') {
             dDiff--;
         }
         if (dDiff < 0) {
-            var daysInLastFullMonth = moment(m2.year() + '-' + (m2.month() + 1), "YYYY-MM").subtract(1, 'M').daysInMonth();
+            var daysInLastFullMonth = moment(m2.year() + '-' + (m2.month() + 1), "YYYY-MM").subtract('months', 1).daysInMonth();
             if (daysInLastFullMonth < m1.date()) { // 31/01 -> 2/03
                 dDiff = daysInLastFullMonth + dDiff + (m1.date() - daysInLastFullMonth);
             } else {
@@ -118,12 +48,50 @@ if (typeof moment === "undefined" && typeof require === 'function') {
             yDiff--;
         }
 
-        if (returnValueObject) {
-            return buildValueObject(yDiff, mDiff, dDiff, hourDiff, minDiff, secDiff, firstDateWasLater);
-        } else {
-            return buildStringFromValues(yDiff, mDiff, dDiff, hourDiff, minDiff, secDiff);
+        var result = [];
+
+        var originalRelative = {};
+        originalRelative.s = moment.relativeTimeThreshold('s');
+        originalRelative.m = moment.relativeTimeThreshold('m');
+        originalRelative.h = moment.relativeTimeThreshold('h');
+        originalRelative.dd = moment.relativeTimeThreshold('dd');
+        originalRelative.dm = moment.relativeTimeThreshold('dm');
+        originalRelative.dy = moment.relativeTimeThreshold('dy');
+
+        moment.relativeTimeThreshold('s',60);
+        moment.relativeTimeThreshold('m',60);
+        moment.relativeTimeThreshold('h',23);
+        moment.relativeTimeThreshold('dd',28);
+        moment.relativeTimeThreshold('dm',45);
+        moment.relativeTimeThreshold('dy',365);
+
+        if (yDiff) {
+            result.push(moment.duration(yDiff,'year').humanize());
+        }
+        if (mDiff) {
+            result.push(moment.duration(mDiff,'month').humanize())
+        }
+        if (dDiff) {
+            result.push(moment.duration(dDiff,'day').humanize());
+        }
+        if (hourDiff) {
+            result.push(moment.duration(hourDiff,'hour').humanize());
+        }
+        if (minDiff) {
+            result.push(moment.duration(minDiff,'minute').humanize());
+        }
+        if (secDiff) {
+            result.push(moment.duration(secDiff,'second').humanize());
         }
 
+        moment.relativeTimeThreshold('s',originalRelative.s);
+        moment.relativeTimeThreshold('m',originalRelative.m);
+        moment.relativeTimeThreshold('h',originalRelative.h);
+        moment.relativeTimeThreshold('dd',originalRelative.dd);
+        moment.relativeTimeThreshold('dm',originalRelative.dm);
+        moment.relativeTimeThreshold('dy',originalRelative.dy);
 
+        return result.join(' ');
     };
+
 }(moment));
