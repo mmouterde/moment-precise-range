@@ -8,6 +8,7 @@
   "main": "moment-precise-range.js",
   "files": [
     "*.md",
+    "locale/*.js",
     "moment-precise-range.js"
   ],
   "directories": {
